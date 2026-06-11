@@ -94,7 +94,9 @@ def gerar_pdf_auditoria_protegido(df_base, coordenacao, horario_acao):
     style_item_detail = ParagraphStyle('ItemDetailAudit', fontName='Helvetica', fontSize=9, leading=13, leftIndent=15)
     
     elementos = []
-    caminho_logo = "logo.png"
+    # Pega a pasta onde o app.py está localizado e junta com o nome da logo
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    caminho_logo = os.path.join(base_dir, "logo.png")
     if os.path.exists(caminho_logo):
         from PIL import Image as PILImage
         img_original = PILImage.open(caminho_logo)
