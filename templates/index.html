@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cancelamento de O.S</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #eef2f7; }
+        
+        .excel-table {
+            border-collapse: collapse !important;
+            width: 100%;
+            table-layout: fixed;
+        }
+        .excel-table th {
+            background-color: #dbeafe;
+            color: #1e40af;
+            font-weight: 600;
+            font-size: 12px;
+            border: 1px solid #bfdbfe;
+            padding: 6px 8px;
+            user-select: none;
+        }
+        .excel-table td {
+            border: 1px solid #e2e8f0;
+            padding: 4px 8px;
+            font-size: 12px;
+            height: 30px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            background-color: #ffffff;
+            position: relative;
+        }
+        /* Célula selecionada (Estilo Bloco do Excel - Sem cursor) */
+        .excel-cell-selectable:focus {
+            outline: none !important;
+            box-shadow: inset 0 0 0 2px #2563eb !important;
+            z-index: 20;
+        }
+        /* Input dinâmico que só aparece ao editar */
+        .excel-edit-input {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: none !important;
+            outline: none !important;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-family: inherit;
+            box-shadow: inset 0 0 0 2px #16a34a !important; /* Borda verde ao editar */
+            background: white;
+            z-index: 30;
+        }
+        .excel-readonly {
+            background-color: #f8fafc;
+            color: #475569;
+            user-select: none;
+        }
+    </style>
+</head>
+<body class="p-6 max-w-6xl mx-auto text-slate-800">
+
+    <header class="mb-8">
+        <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Cancelamento de O.S.</h1>
+        <p class="text-slate-500 mt-1">Selecione os responsáveis, realize o upload dos documentos e faça a gestão dos motivos.</p>
+    </header>
+
+    <section class="bg-white p-6 rounded-xl shadow-xs border border-slate-200 mb-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">👤 1. Seleção de Responsáveis</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <div class="relative">
+                <label class="block text-sm font-medium text-slate-600 mb-1">Selecione a Coordenação:</label>
+                <button id="btn-coord" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-left cursor-pointer transition-all duration-200 hover:bg-slate-100 hover:border-slate-400 focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 focus:outline-none flex justify-between items-center text-sm">
+                    <span id="label-coord" class="text-slate-700">Escolha uma coordenação...</span>
+                    <span class="text-[10px] text-slate-400">▼</span>
+                </button>
+                <div id="menu-coord" class="hidden absolute left-0 w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1 max-h-60 overflow-y-auto">
+                </div>
+            </div>
+
+            <div class="relative">
+                <label class="block text-sm font-medium text-slate-600 mb-1">Selecione o Solicitante Padrão:</label>
+                <button id="btn-solicitante" disabled class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-left transition-all duration-200 focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 focus:outline-none flex justify-between items-center disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:enabled:bg-slate-100 hover:enabled:border-slate-400 text-sm">
+                    <span id="label-solicitante" class="text-slate-500">Aguardando coordenação...</span>
+                    <span class="text-[10px] text-slate-400">▼</span>
+                </button>
+                <div id="menu-solicitante" class="hidden absolute left-0 w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1 max-h-60 overflow-y-auto">
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="bg-white p-6 rounded-xl shadow-xs border border-slate-200 mb-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">📂 2. Upload de Arquivos</h2>
+        <div class="border-2 border-dashed border-slate-300 hover:border-sky-500 rounded-xl p-8 text-center cursor-pointer transition relative">
+            <input type="file" id="input-arquivos" multiple accept=".pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+            <p class="text-slate-600 font-medium">Arraste ou clique para selecionar os arquivos PDF das Ordens de Serviço</p>
+            <p id="contador-arquivos" class="text-xs text-slate-400 mt-1">Nenhum arquivo selecionado</p>
+        </div>
+    </section>
+
+    <section id="secao-dados" class="bg-white p-6 rounded-xl shadow-xs border border-slate-200 hidden mb-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-2 flex items-center gap-2">📊 3. Dados das Ordens de Serviço</h2>
+        
+        <div class="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-3 mb-4 space-y-1">
+            <div><strong>O campo 'Motivo' aceita até 33 caracteres.</strong></div>
+        </div>
+
+        <div class="overflow-x-auto border border-slate-300">
+            <table class="excel-table" id="tabela-os">
+                <thead>
+                    <tr>
+                        <th class="w-32">Nº da Ordem</th>
+                        <th class="w-96">Nome do Arquivo</th>
+                        <th class="w-48">Solicitante</th>
+                        <th class="w-80">Motivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+
+        <button id="btn-processar" class="w-full mt-6 bg-sky-600 hover:bg-sky-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition transform active:scale-[0.99] cursor-pointer">
+            Processar e Gerar Arquivos para Download
+        </button>
+    </section>
+
+    <script>
+        let mapaCoordenacoes = {};
+        let listaGlobalOs = [];
+        let coordSelecionada = "";
+        let solicitanteSelecionado = "";
+        let areaTransferenciaInterna = ""; // Armazena o valor do Ctrl+C
+
+        const btnCoord = document.getElementById('btn-coord');
+        const menuCoord = document.getElementById('menu-coord');
+        const labelCoord = document.getElementById('label-coord');
+        const btnSolicitante = document.getElementById('btn-solicitante');
+        const menuSolicitante = document.getElementById('menu-solicitante');
+        const labelSolicitante = document.getElementById('label-solicitante');
+
+        btnCoord.addEventListener('click', (e) => { e.stopPropagation(); menuCoord.classList.toggle('hidden'); menuSolicitante.classList.add('hidden'); });
+        btnSolicitante.addEventListener('click', (e) => { e.stopPropagation(); menuSolicitante.classList.toggle('hidden'); menuCoord.classList.add('hidden'); });
+        document.addEventListener('click', () => { menuCoord.classList.add('hidden'); menuSolicitante.classList.add('hidden'); });
+
+        fetch('/coordenacoes')
+            .then(res => res.json())
+            .then(data => {
+                mapaCoordenacoes = data;
+                menuCoord.innerHTML = '';
+                Object.keys(data).forEach(coord => {
+                    let item = document.createElement('div');
+                    item.className = "p-2.5 hover:bg-slate-50 rounded-lg cursor-pointer transition text-sm text-slate-700 font-medium m-0.5";
+                    item.textContent = coord;
+                    item.addEventListener('click', () => selecionarCoord(coord));
+                    menuCoord.appendChild(item);
+                });
+            });
+
+        function selecionarCoord(coord) {
+            coordSelecionada = coord;
+            labelCoord.textContent = coord;
+            menuCoord.classList.add('hidden');
+            solicitanteSelecionado = "";
+            labelSolicitante.textContent = "Selecione o funcionário...";
+            btnSolicitante.disabled = false;
+            
+            menuSolicitante.innerHTML = '';
+            mapaCoordenacoes[coord].forEach(func => {
+                let item = document.createElement('div');
+                item.className = "p-2.5 hover:bg-slate-50 rounded-lg cursor-pointer transition text-sm text-slate-700 m-0.5";
+                item.textContent = func;
+                item.addEventListener('click', () => selecionarSolicitante(func));
+                menuSolicitante.appendChild(item);
+            });
+
+            listaGlobalOs.forEach(os => os.solicitante = "");
+            renderizarTabela();
+        }
+
+        function selecionarSolicitante(func) {
+            solicitanteSelecionado = func;
+            labelSolicitante.textContent = func;
+            menuSolicitante.classList.add('hidden');
+            listaGlobalOs.forEach(os => os.solicitante = func);
+            renderizarTabela();
+        }
+
+        document.getElementById('input-arquivos').addEventListener('change', async (e) => {
+            const arquivos = e.target.files;
+            if(!arquivos.length) return;
+
+            document.getElementById('contador-arquivos').textContent = `${arquivos.length} arquivo(s) selecionado(s)`;
+            const formData = new FormData();
+            for(let i=0; i<arquivos.length; i++) formData.append('arquivos', arquivos[i]);
+            formData.append('solicitante_padrao', solicitanteSelecionado);
+
+            const res = await fetch('/Analisar-arquivos', { method: 'POST', body: formData });
+            listaGlobalOs = await res.json();
+            
+            if(listaGlobalOs.length > 0) {
+                document.getElementById('secao-dados').classList.remove('hidden');
+                renderizarTabela();
+            }
+        });
+
+        // Renderização com foco habilitado nas colunas editáveis e não-editáveis
+        function renderizarTabela() {
+            const tbody = document.querySelector('#tabela-os tbody');
+            tbody.innerHTML = '';
+
+            listaGlobalOs.forEach((os, idx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="excel-readonly font-semibold text-center">${os.ordem}</td>
+                    <td class="excel-readonly text-slate-500">${os.nome_arquivo}</td>
+                    <td class="excel-cell-selectable text-slate-600 select-none" tabindex="0" data-idx="${idx}" data-campo="solicitante">${os.solicitante}</td>
+                    <td class="excel-cell-selectable font-mono text-slate-900 cursor-cell" tabindex="0" data-idx="${idx}" data-campo="motivo">${os.motivo}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            ativarMotorPlanilhaExcel();
+        }
+
+        function atualizarCampo(idx, campo, valor) {
+            listaGlobalOs[idx][campo] = valor;
+        }
+
+        // Motor de Planilha Refinado
+        function ativarMotorPlanilhaExcel() {
+            const celulas = document.querySelectorAll('.excel-cell-selectable');
+
+            celulas.forEach(celula => {
+                const idx = parseInt(celula.getAttribute('data-idx'));
+                const campo = celula.getAttribute('data-campo');
+
+                // 1. DUPLO CLIQUE (Apenas para Motivo)
+                celula.addEventListener('dblclick', function() {
+                    if (campo === 'motivo') {
+                        iniciarEdicaoCelula(this, idx, campo);
+                    }
+                });
+
+                // 2. CAPTURA DE TECLADO (Navegação Global e Edição Restrita)
+                celula.addEventListener('keydown', function(e) {
+                    if (this.querySelector('.excel-edit-input')) return; // Ignora se o input de digitação estiver ativo
+
+                    // Navegação estrutural idêntica ao Excel
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        const proxima = document.querySelector(`.excel-cell-selectable[data-idx="${idx + 1}"][data-campo="${campo}"]`);
+                        if (proxima) proxima.focus();
+                    } 
+                    else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        const anterior = document.querySelector(`.excel-cell-selectable[data-idx="${idx - 1}"][data-campo="${campo}"]`);
+                        if (anterior) anterior.focus();
+                    }
+                    else if (e.key === 'ArrowRight' && campo === 'solicitante') {
+                        e.preventDefault();
+                        const direita = document.querySelector(`.excel-cell-selectable[data-idx="${idx}"][data-campo="motivo"]`);
+                        if (direita) direita.focus();
+                    }
+                    else if (e.key === 'ArrowLeft' && campo === 'motivo') {
+                        e.preventDefault();
+                        const esquerda = document.querySelector(`.excel-cell-selectable[data-idx="${idx}"][data-campo="solicitante"]`);
+                        if (esquerda) esquerda.focus();
+                    }
+                    
+                    // Comandos de Edição / Cópia / Colagem protegidos por escopo de coluna
+                    else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (campo === 'motivo') {
+                            iniciarEdicaoCelula(this, idx, campo);
+                        }
+                    }
+                    // Atalho Ctrl+C (Funciona em ambas as colunas para coletar dados)
+                    else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+                        e.preventDefault();
+                        areaTransferenciaInterna = listaGlobalOs[idx][campo];
+                    }
+                    // Atalho Ctrl+V (Escreve apenas se o alvo for a coluna 'motivo')
+                    else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+                        e.preventDefault();
+                        if (campo === 'motivo' && areaTransferenciaInterna !== undefined) {
+                            let valorTratado = areaTransferenciaInterna.substring(0, 33);
+                            listaGlobalOs[idx][campo] = valorTratado;
+                            this.textContent = valorTratado;
+                        }
+                    }
+                    // Digitação direta na célula (Bloqueado no Solicitante, Liberado no Motivo)
+                    else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                        if (campo === 'motivo') {
+                            e.preventDefault();
+                            iniciarEdicaoCelula(this, idx, campo, e.key);
+                        }
+                    }
+                });
+
+                // Suporte a colagem de dados externos (Ex: Colunas copiadas de planilhas locais)
+                celula.addEventListener('paste', function(e) {
+                    if (this.querySelector('.excel-edit-input') || campo !== 'motivo') return;
+                    e.preventDefault();
+                    
+                    const clipboardData = e.clipboardData || window.clipboardData;
+                    const pastedData = clipboardData.getData('Text');
+                    const linhas = pastedData.split(/\r?\n/).filter(l => l.trim() !== "");
+                    
+                    linhas.forEach((texto, i) => {
+                        let targetIdx = idx + i;
+                        if(targetIdx < listaGlobalOs.length) {
+                            let valorLimpo = texto.substring(0, 33);
+                            listaGlobalOs[targetIdx][campo] = valorLimpo;
+                            
+                            const tdAlvo = document.querySelector(`.excel-cell-selectable[data-idx="${targetIdx}"][data-campo="motivo"]`);
+                            if(tdAlvo) tdAlvo.textContent = valorLimpo;
+                        }
+                    });
+                });
+            });
+        }
+
+        // Abre a caixa de texto em tempo real corrigindo a posição do cursor (Fim do texto)
+        function iniciarEdicaoCelula(td, idx, campo, caractereInicial = "") {
+            if (td.querySelector('.excel-edit-input')) return;
+
+            const valorOriginal = listaGlobalOs[idx][campo];
+            const valorExibido = caractereInicial ? caractereInicial : valorOriginal;
+            
+            td.innerHTML = `<input type="text" class="excel-edit-input" value="${valorExibido}" maxlength="33">`;
+            
+            const input = td.querySelector('.excel-edit-input');
+            input.focus();
+            
+            // CORREÇÃO AQUI: Garante que o cursor vá para o final do caractere digitado ou do texto existente
+            const comprimentoTexto = input.value.length;
+            input.setSelectionRange(comprimentoTexto, comprimentoTexto);
+
+            function fecharESalvar() {
+                const novoValor = input.value;
+                listaGlobalOs[idx][campo] = novoValor;
+                td.textContent = novoValor;
+                td.focus();
+            }
+
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    fecharESalvar();
+                    
+                    const proximaCelulaAbaixo = document.querySelector(`.excel-cell-selectable[data-idx="${idx + 1}"][data-campo="${campo}"]`);
+                    if (proximaCelulaAbaixo) {
+                        proximaCelulaAbaixo.focus();
+                    }
+                }
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    input.removeEventListener('blur', fecharESalvar);
+                    td.textContent = valorOriginal;
+                    td.focus();
+                }
+            });
+
+            input.addEventListener('blur', function() {
+                if (td.querySelector('.excel-edit-input')) {
+                    fecharESalvar();
+                }
+            });
+        }
+
+        document.getElementById('btn-processar').addEventListener('click', async () => {
+            const temVazio = listaGlobalOs.some(os => !os.solicitante.trim() || !os.motivo.trim());
+            if(temVazio) {
+                alert("⚠️ Por favor, certifique-se de preencher todos os campos de Solicitante e Motivo antes de gerar os arquivos.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-processar');
+            btn.disabled = true; btn.textContent = "Gerando PDFs, Planilha e Log Inviolável de Auditoria..."; btn.style.backgroundColor = "#475569";
+
+            const fileInput = document.getElementById('input-arquivos');
+            const formData = new FormData();
+            
+            for(let i=0; i<fileInput.files.length; i++) {
+                formData.append('arquivos', fileInput.files[i]);
+            }
+            formData.append('dados', JSON.stringify(listaGlobalOs));
+            formData.append('coordenacao', coordSelecionada);
+
+            try {
+                const res = await fetch('/processar', { method: 'POST', body: formData });
+                if(res.ok) {
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = "OS_Processadas_Completas.zip";
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } else {
+                    alert("Erro interno na API durante o processamento de buffers.");
+                }
+            } catch (err) {
+                alert("Falha de comunicação com a rede.");
+            } finally {
+                btn.disabled = false; btn.textContent = "Processar e Gerar Arquivos para Download"; btn.style.backgroundColor = "#0284c7";
+            }
+        });
+    </script>
